@@ -331,7 +331,7 @@ class PDFEditor:
         style.configure("Accent.TButton", font=("Segoe UI", 9, "bold"), padding=(12, 5))
         style.configure("Tool.TButton", font=("Segoe UI", 9), padding=(8, 4))
         style.configure("Dark.TButton", font=("Segoe UI", 9), padding=(10, 5))
-        style.configure("Dark.TScale", background=TOOLBAR_BG, troughcolor="#3a3a3a")
+        style.configure("TScale", background=TOOLBAR_BG, troughcolor="#3a3a3a")
 
     def _build_ui(self):
         # Top toolbar
@@ -365,7 +365,7 @@ class PDFEditor:
         self.size_var = tk.IntVar(value=DEFAULT_THUMB_W)
         size_scale = ttk.Scale(inner, from_=MIN_THUMB, to=MAX_THUMB, variable=self.size_var,
                                 orient=tk.HORIZONTAL, length=120, command=self._on_size_change,
-                                style="Dark.TScale")
+                                style="TScale")
         size_scale.pack(side=tk.LEFT, padx=2)
         self.size_label = ttk.Label(inner, text=f"{DEFAULT_THUMB_W}px", style="Toolbar.TLabel",
                                      font=("Segoe UI", 8))
