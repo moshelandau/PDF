@@ -62,26 +62,57 @@ DEFAULT_THUMB_H = 240
 MIN_THUMB = 100
 MAX_THUMB = 400
 
-# Colors - Modern dark blue theme
-BG_MAIN = "#0f1923"
-BG_TOOLBAR = "#162232"
-BG_SIDEBAR = "#132030"
-BG_CARD = "#1a2d42"
-BG_CARD_HOVER = "#1f3550"
-BG_CARD_SEL = "#0d4f8b"
-BG_STATUS = "#0c1620"
-BG_CANVAS = "#0f1923"
-ACCENT = "#2196F3"
-ACCENT_LIGHT = "#64B5F6"
-ACCENT_DIM = "#1565C0"
-TEXT_PRIMARY = "#e0e6ed"
-TEXT_SECONDARY = "#8899aa"
-TEXT_DIM = "#556677"
-BORDER = "#1e3a54"
-BORDER_SEL = "#2196F3"
-DANGER = "#e74c3c"
-SUCCESS = "#27ae60"
-WHITE = "#ffffff"
+THEMES = {
+    "dark": {
+        "BG_MAIN": "#0f1923", "BG_TOOLBAR": "#162232", "BG_SIDEBAR": "#132030",
+        "BG_CARD": "#1a2d42", "BG_CARD_HOVER": "#1f3550", "BG_CARD_SEL": "#0d4f8b",
+        "BG_STATUS": "#0c1620", "BG_CANVAS": "#0f1923",
+        "ACCENT": "#2196F3", "ACCENT_LIGHT": "#64B5F6", "ACCENT_DIM": "#1565C0",
+        "TEXT_PRIMARY": "#e0e6ed", "TEXT_SECONDARY": "#8899aa", "TEXT_DIM": "#556677",
+        "BORDER": "#1e3a54", "BORDER_SEL": "#2196F3",
+        "DANGER": "#e74c3c", "DANGER_BG": "#3a1520", "DANGER_FG": "#ff6b6b",
+        "SUCCESS": "#27ae60", "WHITE": "#ffffff",
+        "SHADOW": "#080e15", "PLACEHOLDER_BG": "#0d1f30", "PLACEHOLDER_BORDER": "#1e3a54",
+        "VIEWER_CANVAS": "#141e2b",
+    },
+    "light": {
+        "BG_MAIN": "#f0f2f5", "BG_TOOLBAR": "#ffffff", "BG_SIDEBAR": "#e8ecf1",
+        "BG_CARD": "#ffffff", "BG_CARD_HOVER": "#e3edf7", "BG_CARD_SEL": "#d0e4f7",
+        "BG_STATUS": "#e0e4e8", "BG_CANVAS": "#f0f2f5",
+        "ACCENT": "#1976D2", "ACCENT_LIGHT": "#1565C0", "ACCENT_DIM": "#1258a8",
+        "TEXT_PRIMARY": "#1a1a1a", "TEXT_SECONDARY": "#555555", "TEXT_DIM": "#888888",
+        "BORDER": "#c8cfd8", "BORDER_SEL": "#1976D2",
+        "DANGER": "#d32f2f", "DANGER_BG": "#fde8e8", "DANGER_FG": "#c62828",
+        "SUCCESS": "#2e7d32", "WHITE": "#ffffff",
+        "SHADOW": "#c0c8d0", "PLACEHOLDER_BG": "#e8ecf1", "PLACEHOLDER_BORDER": "#c8cfd8",
+        "VIEWER_CANVAS": "#e8e8e8",
+    },
+}
+
+# Active theme name and color variables (module-level for easy access)
+_current_theme = "dark"
+
+def _apply_theme(name):
+    global _current_theme
+    global BG_MAIN, BG_TOOLBAR, BG_SIDEBAR, BG_CARD, BG_CARD_HOVER, BG_CARD_SEL
+    global BG_STATUS, BG_CANVAS, ACCENT, ACCENT_LIGHT, ACCENT_DIM
+    global TEXT_PRIMARY, TEXT_SECONDARY, TEXT_DIM, BORDER, BORDER_SEL
+    global DANGER, DANGER_BG, DANGER_FG, SUCCESS, WHITE
+    global SHADOW, PLACEHOLDER_BG, PLACEHOLDER_BORDER, VIEWER_CANVAS
+    _current_theme = name
+    t = THEMES[name]
+    BG_MAIN = t["BG_MAIN"]; BG_TOOLBAR = t["BG_TOOLBAR"]; BG_SIDEBAR = t["BG_SIDEBAR"]
+    BG_CARD = t["BG_CARD"]; BG_CARD_HOVER = t["BG_CARD_HOVER"]; BG_CARD_SEL = t["BG_CARD_SEL"]
+    BG_STATUS = t["BG_STATUS"]; BG_CANVAS = t["BG_CANVAS"]
+    ACCENT = t["ACCENT"]; ACCENT_LIGHT = t["ACCENT_LIGHT"]; ACCENT_DIM = t["ACCENT_DIM"]
+    TEXT_PRIMARY = t["TEXT_PRIMARY"]; TEXT_SECONDARY = t["TEXT_SECONDARY"]; TEXT_DIM = t["TEXT_DIM"]
+    BORDER = t["BORDER"]; BORDER_SEL = t["BORDER_SEL"]
+    DANGER = t["DANGER"]; DANGER_BG = t["DANGER_BG"]; DANGER_FG = t["DANGER_FG"]
+    SUCCESS = t["SUCCESS"]; WHITE = t["WHITE"]
+    SHADOW = t["SHADOW"]; PLACEHOLDER_BG = t["PLACEHOLDER_BG"]
+    PLACEHOLDER_BORDER = t["PLACEHOLDER_BORDER"]; VIEWER_CANVAS = t["VIEWER_CANVAS"]
+
+_apply_theme("dark")
 
 
 class PageCard:
@@ -110,7 +141,7 @@ class PageCard:
         bw = 2 if sel else 1
 
         # Soft shadow
-        s = self.canvas.create_rectangle(x+2, y+2, x+w+2, y+h+2, fill="#080e15", outline="")
+        s = self.canvas.create_rectangle(x+2, y+2, x+w+2, y+h+2, fill=SHADOW, outline="")
         self.items.append(s)
 
         # Card
@@ -129,7 +160,7 @@ class PageCard:
             self.items.append(img)
         else:
             # Stylish placeholder
-            ph = self.canvas.create_rectangle(x+8, y+5, x+w-8, y+5+thumb_h, fill="#0d1f30", outline="#1e3a54")
+            ph = self.canvas.create_rectangle(x+8, y+5, x+w-8, y+5+thumb_h, fill=PLACEHOLDER_BG, outline=PLACEHOLDER_BORDER)
             self.items.append(ph)
             # Page icon
             icon_y = y + 5 + thumb_h//2 - 15
@@ -198,7 +229,7 @@ class PageViewer(tk.Toplevel):
         # Canvas
         cf = tk.Frame(self, bg=BG_MAIN)
         cf.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        self.canvas = tk.Canvas(cf, bg="#141e2b", highlightthickness=0)
+        self.canvas = tk.Canvas(cf, bg=VIEWER_CANVAS, highlightthickness=0)
         vs = ttk.Scrollbar(cf, orient=tk.VERTICAL, command=self.canvas.yview)
         hs = ttk.Scrollbar(cf, orient=tk.HORIZONTAL, command=self.canvas.xview)
         self.canvas.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
@@ -300,7 +331,7 @@ class PDFEditor:
         if style == "accent":
             bg, fg, abg = ACCENT, WHITE, ACCENT_DIM
         elif style == "danger":
-            bg, fg, abg = "#3a1520", "#ff6b6b", DANGER
+            bg, fg, abg = DANGER_BG, DANGER_FG, DANGER
         else:
             bg, fg, abg = BG_CARD, TEXT_PRIMARY, BG_CARD_HOVER
 
@@ -399,6 +430,12 @@ class PDFEditor:
                                     fg=ACCENT_LIGHT, font=("Segoe UI", 8, "bold"), width=3)
         self.size_label.pack(side=tk.LEFT)
 
+        self._make_sep(toolbar)
+
+        # Theme toggle
+        theme_label = "\u263E Dark" if _current_theme == "light" else "\u263C Light"
+        self._make_btn(toolbar, theme_label, self._toggle_theme).pack(side=tk.LEFT, padx=2)
+
         # ── Info bar ──
         info_bar = tk.Frame(self.root, bg=BG_SIDEBAR, padx=12, pady=5)
         info_bar.pack(fill=tk.X)
@@ -460,6 +497,28 @@ class PDFEditor:
                 self.root.after_cancel(self._size_after_id)
             self._size_after_id = self.root.after(300, self._start_thumb_gen)
 
+    def _toggle_theme(self):
+        new_theme = "light" if _current_theme == "dark" else "dark"
+        _apply_theme(new_theme)
+        # Rebuild the entire UI with new colors
+        for w in self.root.winfo_children():
+            w.destroy()
+        self._build_ui()
+        # Restore file state in the refreshed UI
+        if self.reader and self.original_path:
+            name = os.path.basename(self.original_path)
+            pages = len(self.reader.pages)
+            mod = "  [modified]" if self.modified else ""
+            marker = "\u25C9" if self.modified else "\u25CF"
+            fg = ACCENT_LIGHT if self.modified else TEXT_PRIMARY
+            self.file_label.config(text=f"{marker}  {name}  ({pages} pages){mod}", fg=fg)
+            self.title_info.config(text=f"  {name}")
+            self.root.title(f"PDF Editor - {name}")
+        self.thumb_images = []
+        self._render_page_grid()
+        if HAS_FITZ and self.loaded_pdf_path:
+            threading.Thread(target=self._generate_thumbs, daemon=True).start()
+
     def _start_thumb_gen(self):
         if HAS_FITZ and self.loaded_pdf_path:
             threading.Thread(target=self._generate_thumbs, daemon=True).start()
@@ -474,13 +533,13 @@ class PDFEditor:
             pix = page.get_pixmap(matrix=mat)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-            canvas_img = Image.new("RGB", (self.thumb_w, self.thumb_h), "#0d1f30")
+            canvas_img = Image.new("RGB", (self.thumb_w, self.thumb_h), PLACEHOLDER_BG)
             x_off = (self.thumb_w - img.width) // 2
             y_off = (self.thumb_h - img.height) // 2
             canvas_img.paste(img, (x_off, y_off))
 
             draw = ImageDraw.Draw(canvas_img)
-            draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline="#1e3a54")
+            draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline=PLACEHOLDER_BORDER)
             return ImageTk.PhotoImage(canvas_img)
         except Exception:
             return None
@@ -515,9 +574,9 @@ class PDFEditor:
 
     def _make_placeholder(self, index, w, h, rotation):
         if not HAS_PIL: return None
-        img = Image.new("RGB", (self.thumb_w, self.thumb_h), "#0d1f30")
+        img = Image.new("RGB", (self.thumb_w, self.thumb_h), PLACEHOLDER_BG)
         draw = ImageDraw.Draw(img)
-        draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline="#1e3a54")
+        draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline=PLACEHOLDER_BORDER)
         try:
             font = ImageFont.truetype("arial.ttf", max(14, self.thumb_w // 8))
             small = ImageFont.truetype("arial.ttf", max(9, self.thumb_w // 16))
@@ -526,11 +585,11 @@ class PDFEditor:
         text = str(index + 1)
         bbox = draw.textbbox((0, 0), text, font=font)
         tw, th2 = bbox[2]-bbox[0], bbox[3]-bbox[1]
-        draw.text(((self.thumb_w-tw)//2, self.thumb_h//2 - th2), text, fill="#4a6a8a", font=font)
+        draw.text(((self.thumb_w-tw)//2, self.thumb_h//2 - th2), text, fill=TEXT_SECONDARY, font=font)
         info = f"{w:.0f}x{h:.0f}"
         bbox2 = draw.textbbox((0, 0), info, font=small)
         iw = bbox2[2]-bbox2[0]
-        draw.text(((self.thumb_w-iw)//2, self.thumb_h//2 + 8), info, fill="#2a4a6a", font=small)
+        draw.text(((self.thumb_w-iw)//2, self.thumb_h//2 + 8), info, fill=TEXT_DIM, font=small)
         return ImageTk.PhotoImage(img)
 
     # ── Grid ──
