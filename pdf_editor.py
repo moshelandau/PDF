@@ -424,32 +424,31 @@ class PDFEditor:
             self.size_label.config(text=f"{new_w}px")
             self.thumb_images = []
             self._render_page_grid()
-            if HAS_FITZ and self.loaded_pdf_path:
-                threading.Thread(target=self._generate_thumbs, daemon=True).start()
+            # Debounce: wait 300ms before generating thumbs so slider dragging doesn't freeze
+            if hasattr(self, '_size_after_id'):
+                self.root.after_cancel(self._size_after_id)
+            self._size_after_id = self.root.after(300, self._start_thumb_generation)
+
+    def _start_thumb_generation(self):
+        if HAS_FITZ and self.loaded_pdf_path:
+            threading.Thread(target=self._generate_thumbs, daemon=True).start()
 
     # --- Thumbnail generation ---
 
-    def _render_thumb_fitz(self, page_index):
-        """Render a single page thumbnail using PyMuPDF."""
-        if not HAS_FITZ or not HAS_PIL or not self.loaded_pdf_path:
-            return None
+    def _render_thumb_from_doc(self, doc, page_index):
+        """Render a single page thumbnail from an open fitz document."""
         try:
-            doc = fitz.open(self.loaded_pdf_path)
             page = doc[page_index]
-            # Scale to fit thumb size
             scale = min(self.thumb_w / page.rect.width, self.thumb_h / page.rect.height)
             mat = fitz.Matrix(scale, scale)
             pix = page.get_pixmap(matrix=mat)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            doc.close()
 
-            # Center on canvas
             canvas_img = Image.new("RGB", (self.thumb_w, self.thumb_h), "#3a3a3a")
             x_off = (self.thumb_w - img.width) // 2
             y_off = (self.thumb_h - img.height) // 2
             canvas_img.paste(img, (x_off, y_off))
 
-            # Add thin border
             draw = ImageDraw.Draw(canvas_img)
             draw.rectangle([0, 0, self.thumb_w - 1, self.thumb_h - 1], outline="#555555")
 
@@ -458,17 +457,37 @@ class PDFEditor:
             return None
 
     def _generate_thumbs(self):
-        """Generate all thumbnails in background thread."""
+        """Generate thumbnails in background, updating UI after each batch."""
         if not self.reader or not self.loaded_pdf_path:
             return
+        path = self.loaded_pdf_path
         total = len(self.reader.pages)
-        new_thumbs = [None] * total
+        thumb_w = self.thumb_w
+        thumb_h = self.thumb_h
+
+        # Ensure thumb list is big enough
+        while len(self.thumb_images) < total:
+            self.thumb_images.append(None)
+
+        try:
+            doc = fitz.open(path)
+        except Exception:
+            return
+
+        batch_size = 5
         for i in range(total):
-            thumb = self._render_thumb_fitz(i)
+            # Stop if PDF changed while we were working
+            if self.loaded_pdf_path != path or self.thumb_w != thumb_w or self.thumb_h != thumb_h:
+                doc.close()
+                return
+            thumb = self._render_thumb_from_doc(doc, i)
             if thumb:
-                new_thumbs[i] = thumb
-        self.thumb_images = new_thumbs
-        self.root.after(0, self._render_page_grid)
+                self.thumb_images[i] = thumb
+            # Refresh UI every batch
+            if (i + 1) % batch_size == 0 or i == total - 1:
+                self.root.after(0, self._render_page_grid)
+
+        doc.close()
 
     def _make_placeholder(self, index, w, h, rotation):
         """Simple placeholder when PyMuPDF not available."""
