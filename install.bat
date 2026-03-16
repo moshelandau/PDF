@@ -14,18 +14,23 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/3] Installing core dependencies...
-pip install PyPDF2>=3.0.0 PyMuPDF>=1.23.0 Pillow>=9.0.0
+echo [1/3] Installing dependencies...
+pip install PyPDF2>=3.0.0 PyMuPDF>=1.23.0 Pillow>=9.0.0 pytesseract>=0.3.10
+if errorlevel 1 (
+    echo.
+    echo WARNING: Some packages failed. Trying one by one...
+    pip install PyPDF2>=3.0.0
+    pip install PyMuPDF>=1.23.0
+    pip install Pillow>=9.0.0
+    pip install pytesseract>=0.3.10
+)
 echo.
 
-echo [2/3] Installing OCR for smart auto-rotate...
-pip install pytesseract>=0.3.10
-echo.
-echo NOTE: For OCR auto-rotate, you also need Tesseract installed:
-echo   1. Download from: https://github.com/UB-Mannheim/tesseract/wiki
-echo   2. Run the installer
-echo   3. The app will find it automatically
-echo   (The app works fine without it - OCR auto-rotate just won't be available.)
+echo [2/3] Quick test...
+python -c "from PyPDF2 import PdfReader; print('  PyPDF2 OK')" 2>nul || echo   PyPDF2 MISSING
+python -c "import fitz; print('  PyMuPDF OK')" 2>nul || echo   PyMuPDF MISSING
+python -c "from PIL import Image; print('  Pillow OK')" 2>nul || echo   Pillow MISSING
+python -c "import pytesseract; print('  pytesseract OK')" 2>nul || echo   pytesseract MISSING (optional, for OCR)
 echo.
 
 echo [3/3] Creating desktop shortcut...
@@ -37,11 +42,8 @@ echo   Setup complete!
 echo   Look for "PDF Editor" on your Desktop.
 echo ==========================================
 echo.
-echo Features:
-echo   - Page thumbnails with real previews
-echo   - Click to select, Ctrl+Click multi-select
-echo   - Double-click any page to expand full size
-echo   - Size slider to adjust thumbnail size
-echo   - OCR smart auto-rotate (if Tesseract installed)
+echo NOTE: For smart OCR auto-rotate, also install Tesseract:
+echo   https://github.com/tesseract-ocr/tesseract/releases/download/5.5.0/tesseract-ocr-w64-setup-5.5.0.20241111.exe
+echo   (The app works fine without it)
 echo.
 pause

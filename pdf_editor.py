@@ -3,10 +3,44 @@
 
 import io
 import os
+import subprocess
+import sys
 import tempfile
 import threading
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, simpledialog
+
+
+def _check_and_install_deps():
+    """Auto-install missing pip packages on first run."""
+    required = {"PyPDF2": "PyPDF2", "fitz": "PyMuPDF", "PIL": "Pillow"}
+    missing = []
+    for module, package in required.items():
+        try:
+            __import__(module)
+        except ImportError:
+            missing.append(package)
+    if missing:
+        msg = f"Installing missing packages: {', '.join(missing)}\nPlease wait..."
+        print(msg)
+        try:
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install"] + missing,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+        except Exception as e:
+            root = tk.Tk()
+            root.withdraw()
+            messagebox.showerror(
+                "Setup Error",
+                f"Failed to install required packages:\n{', '.join(missing)}\n\n"
+                f"Please run manually:\n  pip install {' '.join(missing)}\n\n{e}"
+            )
+            sys.exit(1)
+
+
+_check_and_install_deps()
+
 from PyPDF2 import PdfReader, PdfWriter
 
 try:
