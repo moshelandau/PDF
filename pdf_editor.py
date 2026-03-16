@@ -650,8 +650,17 @@ class PDFEditor:
         if not self._require_pdf():
             return
 
-        use_ocr = HAS_OCR and HAS_FITZ and HAS_PIL
-        if use_ocr:
+        TESSERACT_URL = "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.0/tesseract-ocr-w64-setup-5.5.0.20241111.exe"
+
+        ocr_available = HAS_OCR and HAS_FITZ and HAS_PIL
+        if ocr_available:
+            # Check if tesseract binary is actually installed
+            try:
+                pytesseract.get_tesseract_version()
+            except Exception:
+                ocr_available = False
+
+        if ocr_available:
             choice = messagebox.askyesnocancel(
                 "Auto-Rotate",
                 "Use OCR to detect correct page orientation?\n\n"
@@ -661,12 +670,27 @@ class PDFEditor:
             )
             if choice is None:
                 return
-            use_ocr = choice
-
-        if use_ocr:
-            self._auto_rotate_ocr()
+            if choice:
+                self._auto_rotate_ocr()
+            else:
+                self._auto_rotate_simple()
         else:
-            self._auto_rotate_simple()
+            choice = messagebox.askyesnocancel(
+                "Auto-Rotate",
+                "OCR smart rotate is not available.\n\n"
+                "To enable it, install Tesseract OCR:\n"
+                f"{TESSERACT_URL}\n\n"
+                "Yes = Open download link\n"
+                "No = Use simple rotate (landscape to portrait)\n"
+                "Cancel = abort"
+            )
+            if choice is None:
+                return
+            if choice:
+                import webbrowser
+                webbrowser.open(TESSERACT_URL)
+            else:
+                self._auto_rotate_simple()
 
     def _auto_rotate_simple(self):
         writer = PdfWriter()
