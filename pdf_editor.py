@@ -327,6 +327,7 @@ class PDFEditor:
         self._drag_start = None
 
         self._build_ui()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _make_btn(self, parent, text, cmd, style="normal"):
         if style == "accent":
@@ -826,6 +827,17 @@ class PDFEditor:
         count = len(indices)
         self.status_label.config(text=f"  Duplicated {count} page(s)")
 
+    def _on_close(self):
+        if self.modified:
+            result = messagebox.askyesnocancel(
+                "Unsaved Changes",
+                "You have unsaved changes.\n\nSave before closing?")
+            if result is None:
+                return
+            if result:
+                self.save()
+        self.root.destroy()
+
     # ── File ops ──
 
     def open_pdf(self):
@@ -892,6 +904,15 @@ class PDFEditor:
         URL = "https://github.com/tesseract-ocr/tesseract/releases/download/5.5.0/tesseract-ocr-w64-setup-5.5.0.20241111.exe"
         ocr_ok = HAS_OCR and HAS_FITZ and HAS_PIL
         if ocr_ok:
+            # Try to find Tesseract in common install locations
+            for tess_path in [
+                r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                os.path.expanduser(r"~\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"),
+            ]:
+                if os.path.isfile(tess_path):
+                    pytesseract.pytesseract.tesseract_cmd = tess_path
+                    break
             try: pytesseract.get_tesseract_version()
             except: ocr_ok = False
 

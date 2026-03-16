@@ -19,13 +19,10 @@ ArchitecturesInstallIn64BitMode=x64compatible
 [Files]
 ; Main application
 Source: "dist\PDFEditor.exe"; DestDir: "{app}"; Flags: ignoreversion
-; Lite version (optional, skip if not built)
-Source: "dist\PDFEditorLite.exe"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 ; Start Menu shortcuts
 Name: "{group}\PDF Editor"; Filename: "{app}\PDFEditor.exe"
-Name: "{group}\PDF Editor Lite"; Filename: "{app}\PDFEditorLite.exe"; Flags: createonlyiffileexists
 Name: "{group}\Uninstall PDF Editor"; Filename: "{uninstallexe}"
 ; Desktop shortcut
 Name: "{autodesktop}\PDF Editor"; Filename: "{app}\PDFEditor.exe"; Tasks: desktopicon
