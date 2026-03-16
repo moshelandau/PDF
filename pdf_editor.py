@@ -308,6 +308,7 @@ class PDFEditor:
         inner.pack(fill=tk.X, padx=8, pady=6)
 
         ttk.Button(inner, text="Open", command=self.open_pdf, style="Accent.TButton").pack(side=tk.LEFT, padx=(0, 2))
+        ttk.Button(inner, text="Save", command=self.save, style="Dark.TButton").pack(side=tk.LEFT, padx=2)
         ttk.Button(inner, text="Save As", command=self.save_as, style="Dark.TButton").pack(side=tk.LEFT, padx=2)
 
         self._sep(inner)
@@ -373,7 +374,8 @@ class PDFEditor:
         self.root.bind("<Control-o>", lambda e: self.open_pdf())
         self.root.bind("<Control-a>", lambda e: self._select_all())
         self.root.bind("<Delete>", lambda e: self.delete_pages())
-        self.root.bind("<Control-s>", lambda e: self.save_as())
+        self.root.bind("<Control-s>", lambda e: self.save())
+        self.root.bind("<Control-S>", lambda e: self.save_as())
 
     def _sep(self, parent):
         sep = ttk.Frame(parent, width=2, style="Dark.TFrame")
@@ -589,7 +591,29 @@ class PDFEditor:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open PDF:\n{e}")
 
+    def save(self):
+        """Save to original file (overwrite)."""
+        if not self._require_pdf():
+            return
+        if not self.original_path:
+            self.save_as()
+            return
+        if not self.modified:
+            messagebox.showinfo("Save", "No changes to save.")
+            return
+        if not messagebox.askyesno("Confirm Save",
+                                    f"Overwrite the original file?\n\n{self.original_path}"):
+            return
+        writer = PdfWriter()
+        for page in self.reader.pages:
+            writer.add_page(page)
+        with open(self.original_path, "wb") as f:
+            writer.write(f)
+        self._load_path(self.original_path)
+        messagebox.showinfo("Saved", f"Saved to:\n{self.original_path}")
+
     def save_as(self):
+        """Save to a new file."""
         if not self._require_pdf():
             return
         default_name = os.path.basename(self.original_path) if self.original_path else "output.pdf"
@@ -816,16 +840,22 @@ class PDFEditor:
                 messagebox.showerror("Error", "Invalid format.")
                 return
 
-        count = 0
+        saved_files = []
         for idx, (start, end) in enumerate(ranges):
             writer = PdfWriter()
             for i in range(start, min(end, total)):
                 writer.add_page(self.reader.pages[i])
             if len(writer.pages) > 0:
-                with open(os.path.join(outdir, f"{base}_part{idx + 1}.pdf"), "wb") as f:
+                filename = f"{base}_part{idx + 1}.pdf"
+                filepath = os.path.join(outdir, filename)
+                with open(filepath, "wb") as f:
                     writer.write(f)
-                count += 1
-        messagebox.showinfo("Split", f"Created {count} file(s) in:\n{outdir}")
+                size_kb = os.path.getsize(filepath) / 1024
+                saved_files.append(f"  {filename}  ({len(writer.pages)} pages, {size_kb:.0f} KB)")
+
+        file_list = "\n".join(saved_files)
+        messagebox.showinfo("Split Complete",
+                            f"Created {len(saved_files)} file(s) in:\n{outdir}\n\n{file_list}")
 
     def split_by_size(self):
         if not self._require_pdf():
@@ -853,6 +883,7 @@ class PDFEditor:
         base = os.path.splitext(os.path.basename(self.original_path or "output"))[0]
         total = len(self.reader.pages)
         part_num = 0
+        saved_files = []
         i = 0
         while i < total:
             pages_in_part = [i]
@@ -871,9 +902,16 @@ class PDFEditor:
             writer = PdfWriter()
             for pi in pages_in_part:
                 writer.add_page(self.reader.pages[pi])
-            with open(os.path.join(outdir, f"{base}_part{part_num}.pdf"), "wb") as f:
+            filename = f"{base}_part{part_num}.pdf"
+            filepath = os.path.join(outdir, filename)
+            with open(filepath, "wb") as f:
                 writer.write(f)
-        messagebox.showinfo("Split by Size", f"Created {part_num} file(s) in:\n{outdir}")
+            size_kb = os.path.getsize(filepath) / 1024
+            saved_files.append(f"  {filename}  ({len(writer.pages)} pages, {size_kb:.0f} KB)")
+
+        file_list = "\n".join(saved_files)
+        messagebox.showinfo("Split by Size",
+                            f"Created {part_num} file(s) in:\n{outdir}\n\n{file_list}")
 
     # --- Internal ---
 
