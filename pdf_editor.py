@@ -304,7 +304,16 @@ class PDFEditor:
         else:
             bg, fg, abg = BG_CARD, TEXT_PRIMARY, BG_CARD_HOVER
 
-        b = tk.Button(parent, text=text, command=cmd, bg=bg, fg=fg,
+        def on_cmd(btn_ref=None, normal_bg=bg, hover_bg=abg):
+            cmd()
+            # After a dialog closes, <Leave> may never fire, leaving the
+            # button stuck in its hover (light) state.  Reset based on
+            # whether the pointer is still over the button.
+            if btn_ref:
+                btn_ref.after(50, lambda: self._reset_btn_hover(btn_ref, normal_bg, hover_bg))
+
+        b = tk.Button(parent, text=text, command=lambda: on_cmd(b, bg, abg),
+                      bg=bg, fg=fg,
                       activebackground=abg, activeforeground=WHITE,
                       relief="flat", font=("Segoe UI", 9), padx=12, pady=5,
                       cursor="hand2", highlightthickness=0, bd=0)
@@ -312,6 +321,19 @@ class PDFEditor:
         b.bind("<Enter>", lambda e: b.config(bg=abg))
         b.bind("<Leave>", lambda e: b.config(bg=bg))
         return b
+
+    @staticmethod
+    def _reset_btn_hover(btn, normal_bg, hover_bg):
+        """Reset button bg after a dialog may have stolen the <Leave> event."""
+        try:
+            mx, my = btn.winfo_pointerxy()
+            bx, by = btn.winfo_rootx(), btn.winfo_rooty()
+            if bx <= mx <= bx + btn.winfo_width() and by <= my <= by + btn.winfo_height():
+                btn.config(bg=hover_bg)
+            else:
+                btn.config(bg=normal_bg)
+        except tk.TclError:
+            pass
 
     def _make_sep(self, parent):
         sep = tk.Frame(parent, width=1, bg=BORDER)
