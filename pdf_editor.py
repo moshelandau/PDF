@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PDF Editor - Modern visual PDF editor."""
+"""PDF Editor - Modern visual PDF editor with light/dark theme."""
 
 import io
 import os
@@ -62,26 +62,39 @@ DEFAULT_THUMB_H = 240
 MIN_THUMB = 100
 MAX_THUMB = 400
 
-# Colors - Modern dark blue theme
-BG_MAIN = "#0f1923"
-BG_TOOLBAR = "#162232"
-BG_SIDEBAR = "#132030"
-BG_CARD = "#1a2d42"
-BG_CARD_HOVER = "#1f3550"
-BG_CARD_SEL = "#0d4f8b"
-BG_STATUS = "#0c1620"
-BG_CANVAS = "#0f1923"
-ACCENT = "#2196F3"
-ACCENT_LIGHT = "#64B5F6"
-ACCENT_DIM = "#1565C0"
-TEXT_PRIMARY = "#e0e6ed"
-TEXT_SECONDARY = "#8899aa"
-TEXT_DIM = "#556677"
-BORDER = "#1e3a54"
-BORDER_SEL = "#2196F3"
-DANGER = "#e74c3c"
-SUCCESS = "#27ae60"
-WHITE = "#ffffff"
+DARK_THEME = {
+    "BG_MAIN": "#0f1923", "BG_TOOLBAR": "#162232", "BG_SIDEBAR": "#132030",
+    "BG_CARD": "#1a2d42", "BG_CARD_HOVER": "#1f3550", "BG_CARD_SEL": "#0d4f8b",
+    "BG_STATUS": "#0c1620", "BG_CANVAS": "#0f1923",
+    "ACCENT": "#2196F3", "ACCENT_LIGHT": "#64B5F6", "ACCENT_DIM": "#1565C0",
+    "TEXT_PRIMARY": "#e0e6ed", "TEXT_SECONDARY": "#8899aa", "TEXT_DIM": "#556677",
+    "BORDER": "#1e3a54", "BORDER_SEL": "#2196F3",
+    "DANGER": "#e74c3c", "DANGER_BG": "#3a1520", "DANGER_FG": "#ff6b6b",
+    "THUMB_BG": "#0d1f30", "SHADOW": "#080e15",
+    "CARD_PLACEHOLDER": "#0d1f30", "CARD_PH_BORDER": "#1e3a54",
+    "CARD_PH_TEXT": "#4a6a8a", "CARD_PH_INFO": "#2a4a6a",
+    "VIEWER_BG": "#141e2b", "WHITE": "#ffffff",
+}
+
+LIGHT_THEME = {
+    "BG_MAIN": "#f0f2f5", "BG_TOOLBAR": "#ffffff", "BG_SIDEBAR": "#e8ecf0",
+    "BG_CARD": "#ffffff", "BG_CARD_HOVER": "#e3edf7", "BG_CARD_SEL": "#cce5ff",
+    "BG_STATUS": "#e0e4e8", "BG_CANVAS": "#f0f2f5",
+    "ACCENT": "#1976D2", "ACCENT_LIGHT": "#1565C0", "ACCENT_DIM": "#1565C0",
+    "TEXT_PRIMARY": "#1a1a2e", "TEXT_SECONDARY": "#555555", "TEXT_DIM": "#999999",
+    "BORDER": "#d0d7de", "BORDER_SEL": "#1976D2",
+    "DANGER": "#d32f2f", "DANGER_BG": "#ffeaea", "DANGER_FG": "#d32f2f",
+    "THUMB_BG": "#e8ecf0", "SHADOW": "#d0d4d8",
+    "CARD_PLACEHOLDER": "#e8ecf0", "CARD_PH_BORDER": "#d0d7de",
+    "CARD_PH_TEXT": "#888888", "CARD_PH_INFO": "#aaaaaa",
+    "VIEWER_BG": "#f5f5f5", "WHITE": "#ffffff",
+}
+
+T = dict(DARK_THEME)
+_is_dark = True
+
+def _t(key):
+    return T[key]
 
 
 class PageCard:
@@ -105,50 +118,43 @@ class PageCard:
 
         x, y, w, h = self.x, self.y, self.card_w, self.card_h
         sel = self.selected
-        bg = BG_CARD_SEL if sel else BG_CARD
-        border = BORDER_SEL if sel else BORDER
+        bg = _t("BG_CARD_SEL") if sel else _t("BG_CARD")
+        border = _t("BORDER_SEL") if sel else _t("BORDER")
         bw = 2 if sel else 1
 
-        # Soft shadow
-        s = self.canvas.create_rectangle(x+2, y+2, x+w+2, y+h+2, fill="#080e15", outline="")
+        s = self.canvas.create_rectangle(x+2, y+2, x+w+2, y+h+2, fill=_t("SHADOW"), outline="")
         self.items.append(s)
 
-        # Card
         r = self.canvas.create_rectangle(x, y, x+w, y+h, fill=bg, outline=border, width=bw)
         self.items.append(r)
 
-        # Selection indicator bar
         if sel:
-            bar = self.canvas.create_rectangle(x, y, x+3, y+h, fill=ACCENT, outline="")
+            bar = self.canvas.create_rectangle(x, y, x+3, y+h, fill=_t("ACCENT"), outline="")
             self.items.append(bar)
 
-        # Thumbnail area
         thumb_h = h - 40
         if self.thumb_image:
             img = self.canvas.create_image(x + w//2, y + 5 + thumb_h//2, image=self.thumb_image)
             self.items.append(img)
         else:
-            # Stylish placeholder
-            ph = self.canvas.create_rectangle(x+8, y+5, x+w-8, y+5+thumb_h, fill="#0d1f30", outline="#1e3a54")
+            ph = self.canvas.create_rectangle(x+8, y+5, x+w-8, y+5+thumb_h,
+                                               fill=_t("CARD_PLACEHOLDER"), outline=_t("CARD_PH_BORDER"))
             self.items.append(ph)
-            # Page icon
             icon_y = y + 5 + thumb_h//2 - 15
             pg = self.canvas.create_text(x+w//2, icon_y, text="\u25A4",
-                                          fill=TEXT_DIM, font=("Segoe UI", 24))
+                                          fill=_t("TEXT_DIM"), font=("Segoe UI", 24))
             self.items.append(pg)
             num = self.canvas.create_text(x+w//2, icon_y + 30, text=str(self.index + 1),
-                                           fill=TEXT_SECONDARY, font=("Segoe UI", 12, "bold"))
+                                           fill=_t("TEXT_SECONDARY"), font=("Segoe UI", 12, "bold"))
             self.items.append(num)
 
-        # Page label
-        lbl_color = WHITE if sel else TEXT_PRIMARY
+        lbl_color = _t("TEXT_PRIMARY") if not sel else (_t("ACCENT_DIM") if not _is_dark else "#ffffff")
         lbl = self.canvas.create_text(x + w//2, y + 5 + thumb_h + 8,
                                        text=f"Page {self.index + 1}",
                                        fill=lbl_color, font=("Segoe UI", 9, "bold"), anchor="n")
         self.items.append(lbl)
 
-        # Info text
-        info_color = ACCENT_LIGHT if sel else TEXT_DIM
+        info_color = _t("ACCENT_LIGHT") if sel else _t("TEXT_DIM")
         inf = self.canvas.create_text(x + w//2, y + 5 + thumb_h + 23,
                                        text=self.page_info,
                                        fill=info_color, font=("Segoe UI", 7), anchor="n")
@@ -175,30 +181,28 @@ class PageViewer(tk.Toplevel):
         total = len(reader.pages)
         self.title(f"Page {page_index + 1} of {total}")
         self.geometry("950x780")
-        self.configure(bg=BG_MAIN)
+        self.configure(bg=_t("BG_MAIN"))
 
-        # Toolbar
-        top = tk.Frame(self, bg=BG_TOOLBAR, padx=10, pady=8)
+        top = tk.Frame(self, bg=_t("BG_TOOLBAR"), padx=10, pady=8)
         top.pack(fill=tk.X)
 
         self._btn(top, "\u25C0  Prev", self._prev).pack(side=tk.LEFT, padx=(0,4))
         self._btn(top, "Next  \u25B6", self._next).pack(side=tk.LEFT, padx=4)
 
         self.page_label = tk.Label(top, text=f"Page {page_index+1} / {total}",
-                                    bg=BG_TOOLBAR, fg=WHITE, font=("Segoe UI", 12, "bold"))
+                                    bg=_t("BG_TOOLBAR"), fg=_t("WHITE"), font=("Segoe UI", 12, "bold"))
         self.page_label.pack(side=tk.LEFT, padx=15)
 
         self._btn(top, "\u2212", self._zoom_out).pack(side=tk.LEFT, padx=2)
-        self.zoom_label = tk.Label(top, text="100%", bg=BG_TOOLBAR, fg=ACCENT_LIGHT,
+        self.zoom_label = tk.Label(top, text="100%", bg=_t("BG_TOOLBAR"), fg=_t("ACCENT_LIGHT"),
                                     font=("Segoe UI", 10, "bold"), width=5)
         self.zoom_label.pack(side=tk.LEFT, padx=4)
         self._btn(top, "+", self._zoom_in).pack(side=tk.LEFT, padx=2)
         self._btn(top, "Fit Width", self._fit_width).pack(side=tk.LEFT, padx=(10,2))
 
-        # Canvas
-        cf = tk.Frame(self, bg=BG_MAIN)
+        cf = tk.Frame(self, bg=_t("BG_MAIN"))
         cf.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
-        self.canvas = tk.Canvas(cf, bg="#141e2b", highlightthickness=0)
+        self.canvas = tk.Canvas(cf, bg=_t("VIEWER_BG"), highlightthickness=0)
         vs = ttk.Scrollbar(cf, orient=tk.VERTICAL, command=self.canvas.yview)
         hs = ttk.Scrollbar(cf, orient=tk.HORIZONTAL, command=self.canvas.xview)
         self.canvas.configure(yscrollcommand=vs.set, xscrollcommand=hs.set)
@@ -215,8 +219,8 @@ class PageViewer(tk.Toplevel):
         self.after(50, self._render)
 
     def _btn(self, parent, text, cmd):
-        b = tk.Button(parent, text=text, command=cmd, bg=BG_CARD, fg=TEXT_PRIMARY,
-                      activebackground=ACCENT_DIM, activeforeground=WHITE, relief="flat",
+        b = tk.Button(parent, text=text, command=cmd, bg=_t("BG_CARD"), fg=_t("TEXT_PRIMARY"),
+                      activebackground=_t("ACCENT_DIM"), activeforeground=_t("WHITE"), relief="flat",
                       font=("Segoe UI", 9), padx=10, pady=3, cursor="hand2",
                       highlightthickness=0, bd=0)
         return b
@@ -274,7 +278,7 @@ class PageViewer(tk.Toplevel):
         p = self.reader.pages[self.page_index]; box = p.mediabox
         self.canvas.create_text(self.canvas.winfo_width()//2, 80,
             text=f"Page {self.page_index+1}\n{float(box.width):.0f} x {float(box.height):.0f} pt",
-            fill=TEXT_SECONDARY, font=("Segoe UI", 14), justify="center")
+            fill=_t("TEXT_SECONDARY"), font=("Segoe UI", 14), justify="center")
 
 
 class PDFEditor:
@@ -283,7 +287,7 @@ class PDFEditor:
         self.root.title("PDF Editor")
         self.root.geometry("1150x780")
         self.root.minsize(850, 600)
-        self.root.configure(bg=BG_MAIN)
+        self.root.configure(bg=_t("BG_MAIN"))
 
         self.loaded_pdf_path = None
         self.original_path = None
@@ -296,106 +300,136 @@ class PDFEditor:
 
         self._build_ui()
 
-    def _make_btn(self, parent, text, cmd, style="normal"):
-        if style == "accent":
-            bg, fg, abg = ACCENT, WHITE, ACCENT_DIM
-        elif style == "danger":
-            bg, fg, abg = "#3a1520", "#ff6b6b", DANGER
-        else:
-            bg, fg, abg = BG_CARD, TEXT_PRIMARY, BG_CARD_HOVER
+    def _bg_for(self, style):
+        if style == "accent": return _t("ACCENT")
+        elif style == "danger": return _t("DANGER_BG")
+        return _t("BG_CARD")
 
+    def _fg_for(self, style):
+        if style == "accent": return _t("WHITE")
+        elif style == "danger": return _t("DANGER_FG")
+        return _t("TEXT_PRIMARY")
+
+    def _abg_for(self, style):
+        if style == "accent": return _t("ACCENT_DIM")
+        elif style == "danger": return _t("DANGER")
+        return _t("BG_CARD_HOVER")
+
+    def _make_btn(self, parent, text, cmd, style="normal"):
+        bg, fg, abg = self._bg_for(style), self._fg_for(style), self._abg_for(style)
         b = tk.Button(parent, text=text, command=cmd, bg=bg, fg=fg,
-                      activebackground=abg, activeforeground=WHITE,
+                      activebackground=abg, activeforeground=_t("WHITE"),
                       relief="flat", font=("Segoe UI", 9), padx=12, pady=5,
                       cursor="hand2", highlightthickness=0, bd=0)
-        # Hover effect
-        b.bind("<Enter>", lambda e: b.config(bg=abg))
-        b.bind("<Leave>", lambda e: b.config(bg=bg))
+        b._btn_style = style
+        b.bind("<Enter>", lambda e, b=b: b.config(bg=self._abg_for(b._btn_style)))
+        b.bind("<Leave>", lambda e, b=b: b.config(bg=self._bg_for(b._btn_style)))
         return b
 
     def _make_sep(self, parent):
-        sep = tk.Frame(parent, width=1, bg=BORDER)
+        sep = tk.Frame(parent, width=1, bg=_t("BORDER"))
         sep.pack(side=tk.LEFT, fill=tk.Y, padx=10, pady=6)
+        return sep
 
     def _build_ui(self):
-        # ── Title bar ──
-        title_bar = tk.Frame(self.root, bg=BG_TOOLBAR, height=40)
-        title_bar.pack(fill=tk.X)
-        title_bar.pack_propagate(False)
+        # Title bar
+        self.title_bar = tk.Frame(self.root, bg=_t("BG_TOOLBAR"), height=40)
+        self.title_bar.pack(fill=tk.X)
+        self.title_bar.pack_propagate(False)
 
-        tk.Label(title_bar, text="\u25A4  PDF Editor", bg=BG_TOOLBAR, fg=ACCENT_LIGHT,
-                 font=("Segoe UI", 13, "bold")).pack(side=tk.LEFT, padx=15, pady=8)
+        self.title_label = tk.Label(self.title_bar, text="\u25A4  PDF Editor",
+                 bg=_t("BG_TOOLBAR"), fg=_t("ACCENT_LIGHT"), font=("Segoe UI", 13, "bold"))
+        self.title_label.pack(side=tk.LEFT, padx=15, pady=8)
 
-        self.title_info = tk.Label(title_bar, text="", bg=BG_TOOLBAR, fg=TEXT_SECONDARY,
+        self.title_info = tk.Label(self.title_bar, text="", bg=_t("BG_TOOLBAR"), fg=_t("TEXT_SECONDARY"),
                                     font=("Segoe UI", 10))
         self.title_info.pack(side=tk.LEFT, padx=5)
 
-        # ── Main toolbar ──
-        toolbar = tk.Frame(self.root, bg=BG_TOOLBAR, padx=10, pady=6)
-        toolbar.pack(fill=tk.X)
+        # Theme toggle
+        self.theme_btn = tk.Button(self.title_bar, text="\u263C Light", command=self._toggle_theme,
+                                    bg=_t("BG_CARD"), fg=_t("TEXT_PRIMARY"),
+                                    activebackground=_t("ACCENT_DIM"), activeforeground=_t("WHITE"),
+                                    relief="flat", font=("Segoe UI", 9), padx=10, pady=3,
+                                    cursor="hand2", highlightthickness=0, bd=0)
+        self.theme_btn.pack(side=tk.RIGHT, padx=15, pady=8)
 
-        # File group
-        tk.Label(toolbar, text="FILE", bg=BG_TOOLBAR, fg=TEXT_DIM,
-                 font=("Segoe UI", 7, "bold")).pack(side=tk.LEFT, padx=(0,6))
-        self._make_btn(toolbar, "\U0001F4C2 Open", self.open_pdf, "accent").pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "\U0001F4BE Save", self.save).pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "Save As", self.save_as).pack(side=tk.LEFT, padx=2)
+        # Main toolbar
+        self.toolbar = tk.Frame(self.root, bg=_t("BG_TOOLBAR"), padx=10, pady=6)
+        self.toolbar.pack(fill=tk.X)
 
-        self._make_sep(toolbar)
+        self.lbl_file = tk.Label(self.toolbar, text="FILE", bg=_t("BG_TOOLBAR"), fg=_t("TEXT_DIM"),
+                 font=("Segoe UI", 7, "bold"))
+        self.lbl_file.pack(side=tk.LEFT, padx=(0,6))
+        self.btn_open = self._make_btn(self.toolbar, "\U0001F4C2 Open", self.open_pdf, "accent")
+        self.btn_open.pack(side=tk.LEFT, padx=2)
+        self.btn_save = self._make_btn(self.toolbar, "\U0001F4BE Save", self.save)
+        self.btn_save.pack(side=tk.LEFT, padx=2)
+        self.btn_saveas = self._make_btn(self.toolbar, "Save As", self.save_as)
+        self.btn_saveas.pack(side=tk.LEFT, padx=2)
 
-        # Rotate group
-        tk.Label(toolbar, text="ROTATE", bg=BG_TOOLBAR, fg=TEXT_DIM,
-                 font=("Segoe UI", 7, "bold")).pack(side=tk.LEFT, padx=(0,6))
-        self._make_btn(toolbar, "\u21BB CW", lambda: self.rotate_pages(90)).pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "\u21BA CCW", lambda: self.rotate_pages(270)).pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "180\u00B0", lambda: self.rotate_pages(180)).pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "\u2B6F Auto", self.auto_rotate).pack(side=tk.LEFT, padx=2)
+        self.sep1 = self._make_sep(self.toolbar)
 
-        self._make_sep(toolbar)
+        self.lbl_rotate = tk.Label(self.toolbar, text="ROTATE", bg=_t("BG_TOOLBAR"), fg=_t("TEXT_DIM"),
+                 font=("Segoe UI", 7, "bold"))
+        self.lbl_rotate.pack(side=tk.LEFT, padx=(0,6))
+        self.btn_cw = self._make_btn(self.toolbar, "\u21BB CW", lambda: self.rotate_pages(90))
+        self.btn_cw.pack(side=tk.LEFT, padx=2)
+        self.btn_ccw = self._make_btn(self.toolbar, "\u21BA CCW", lambda: self.rotate_pages(270))
+        self.btn_ccw.pack(side=tk.LEFT, padx=2)
+        self.btn_180 = self._make_btn(self.toolbar, "180\u00B0", lambda: self.rotate_pages(180))
+        self.btn_180.pack(side=tk.LEFT, padx=2)
+        self.btn_auto = self._make_btn(self.toolbar, "\u2B6F Auto", self.auto_rotate)
+        self.btn_auto.pack(side=tk.LEFT, padx=2)
 
-        # Edit group
-        tk.Label(toolbar, text="EDIT", bg=BG_TOOLBAR, fg=TEXT_DIM,
-                 font=("Segoe UI", 7, "bold")).pack(side=tk.LEFT, padx=(0,6))
-        self._make_btn(toolbar, "\u2716 Delete", self.delete_pages, "danger").pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "\u2795 Merge", self.merge_pdfs).pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "\u2702 Split", self.split_by_pages).pack(side=tk.LEFT, padx=2)
-        self._make_btn(toolbar, "\u2696 Split Size", self.split_by_size).pack(side=tk.LEFT, padx=2)
+        self.sep2 = self._make_sep(self.toolbar)
 
-        self._make_sep(toolbar)
+        self.lbl_edit = tk.Label(self.toolbar, text="EDIT", bg=_t("BG_TOOLBAR"), fg=_t("TEXT_DIM"),
+                 font=("Segoe UI", 7, "bold"))
+        self.lbl_edit.pack(side=tk.LEFT, padx=(0,6))
+        self.btn_del = self._make_btn(self.toolbar, "\u2716 Delete", self.delete_pages, "danger")
+        self.btn_del.pack(side=tk.LEFT, padx=2)
+        self.btn_merge = self._make_btn(self.toolbar, "\u2795 Merge", self.merge_pdfs)
+        self.btn_merge.pack(side=tk.LEFT, padx=2)
+        self.btn_split = self._make_btn(self.toolbar, "\u2702 Split", self.split_by_pages)
+        self.btn_split.pack(side=tk.LEFT, padx=2)
+        self.btn_splitsize = self._make_btn(self.toolbar, "\u2696 Split Size", self.split_by_size)
+        self.btn_splitsize.pack(side=tk.LEFT, padx=2)
 
-        # Zoom slider
-        tk.Label(toolbar, text="SIZE", bg=BG_TOOLBAR, fg=TEXT_DIM,
-                 font=("Segoe UI", 7, "bold")).pack(side=tk.LEFT, padx=(0,4))
+        self.sep3 = self._make_sep(self.toolbar)
+
+        self.lbl_size = tk.Label(self.toolbar, text="SIZE", bg=_t("BG_TOOLBAR"), fg=_t("TEXT_DIM"),
+                 font=("Segoe UI", 7, "bold"))
+        self.lbl_size.pack(side=tk.LEFT, padx=(0,4))
         self.size_var = tk.IntVar(value=DEFAULT_THUMB_W)
-        scale = tk.Scale(toolbar, from_=MIN_THUMB, to=MAX_THUMB, variable=self.size_var,
+        self.scale = tk.Scale(self.toolbar, from_=MIN_THUMB, to=MAX_THUMB, variable=self.size_var,
                          orient=tk.HORIZONTAL, length=100, command=self._on_size_change,
-                         bg=BG_TOOLBAR, fg=TEXT_SECONDARY, troughcolor=BG_CARD,
+                         bg=_t("BG_TOOLBAR"), fg=_t("TEXT_SECONDARY"), troughcolor=_t("BG_CARD"),
                          highlightthickness=0, sliderrelief="flat", bd=0, showvalue=False,
-                         activebackground=ACCENT)
-        scale.pack(side=tk.LEFT, padx=2)
-        self.size_label = tk.Label(toolbar, text=f"{DEFAULT_THUMB_W}", bg=BG_TOOLBAR,
-                                    fg=ACCENT_LIGHT, font=("Segoe UI", 8, "bold"), width=3)
+                         activebackground=_t("ACCENT"))
+        self.scale.pack(side=tk.LEFT, padx=2)
+        self.size_label = tk.Label(self.toolbar, text=f"{DEFAULT_THUMB_W}", bg=_t("BG_TOOLBAR"),
+                                    fg=_t("ACCENT_LIGHT"), font=("Segoe UI", 8, "bold"), width=3)
         self.size_label.pack(side=tk.LEFT)
 
-        # ── Info bar ──
-        info_bar = tk.Frame(self.root, bg=BG_SIDEBAR, padx=12, pady=5)
-        info_bar.pack(fill=tk.X)
+        # Info bar
+        self.info_bar = tk.Frame(self.root, bg=_t("BG_SIDEBAR"), padx=12, pady=5)
+        self.info_bar.pack(fill=tk.X)
 
-        self.file_label = tk.Label(info_bar, text="\u25CB  No file loaded",
-                                    bg=BG_SIDEBAR, fg=TEXT_SECONDARY,
+        self.file_label = tk.Label(self.info_bar, text="\u25CB  No file loaded",
+                                    bg=_t("BG_SIDEBAR"), fg=_t("TEXT_SECONDARY"),
                                     font=("Segoe UI", 10))
         self.file_label.pack(side=tk.LEFT)
 
-        self.selection_label = tk.Label(info_bar, text="", bg=BG_SIDEBAR, fg=ACCENT_LIGHT,
+        self.selection_label = tk.Label(self.info_bar, text="", bg=_t("BG_SIDEBAR"), fg=_t("ACCENT_LIGHT"),
                                          font=("Segoe UI", 9))
         self.selection_label.pack(side=tk.RIGHT)
 
-        # ── Page grid ──
-        grid_frame = tk.Frame(self.root, bg=BG_CANVAS)
-        grid_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
+        # Page grid
+        self.grid_frame = tk.Frame(self.root, bg=_t("BG_CANVAS"))
+        self.grid_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
 
-        self.canvas = tk.Canvas(grid_frame, bg=BG_CANVAS, highlightthickness=0)
-        self.scrollbar = ttk.Scrollbar(grid_frame, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.canvas = tk.Canvas(self.grid_frame, bg=_t("BG_CANVAS"), highlightthickness=0)
+        self.scrollbar = ttk.Scrollbar(self.grid_frame, orient=tk.VERTICAL, command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -405,25 +439,80 @@ class PDFEditor:
         self.canvas.bind("<Button-4>", lambda e: self.canvas.yview_scroll(-3, "units"))
         self.canvas.bind("<Button-5>", lambda e: self.canvas.yview_scroll(3, "units"))
 
-        # ── Status bar ──
-        status = tk.Frame(self.root, bg=BG_STATUS, height=28)
-        status.pack(fill=tk.X, side=tk.BOTTOM)
-        status.pack_propagate(False)
+        # Status bar
+        self.status_frame = tk.Frame(self.root, bg=_t("BG_STATUS"), height=28)
+        self.status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        self.status_frame.pack_propagate(False)
 
-        self.status_label = tk.Label(status, text="  Ready  |  Click = select  |  Ctrl+Click = multi  |  Ctrl+A = all  |  Double-click = expand  |  Del = remove",
-                                      bg=BG_STATUS, fg=TEXT_DIM, font=("Segoe UI", 8), anchor="w")
+        self.status_label = tk.Label(self.status_frame,
+            text="  Ready  |  Click = select  |  Ctrl+Click = multi  |  Ctrl+A = all  |  Double-click = expand  |  Del = remove",
+            bg=_t("BG_STATUS"), fg=_t("TEXT_DIM"), font=("Segoe UI", 8), anchor="w")
         self.status_label.pack(side=tk.LEFT, padx=8)
 
-        self.status_right = tk.Label(status, text="", bg=BG_STATUS, fg=TEXT_DIM,
+        self.status_right = tk.Label(self.status_frame, text="", bg=_t("BG_STATUS"), fg=_t("TEXT_DIM"),
                                       font=("Segoe UI", 8), anchor="e")
         self.status_right.pack(side=tk.RIGHT, padx=8)
 
-        # ── Keyboard shortcuts ──
+        # Keyboard shortcuts
         self.root.bind("<Control-o>", lambda e: self.open_pdf())
         self.root.bind("<Control-a>", lambda e: self._select_all())
         self.root.bind("<Delete>", lambda e: self.delete_pages())
         self.root.bind("<Control-s>", lambda e: self.save())
         self.root.bind("<Control-S>", lambda e: self.save_as())
+
+    # ── Theme toggle ──
+
+    def _toggle_theme(self):
+        global T, _is_dark
+        _is_dark = not _is_dark
+        T.clear()
+        T.update(DARK_THEME if _is_dark else LIGHT_THEME)
+        self._apply_theme()
+
+    def _apply_theme(self):
+        self.root.configure(bg=_t("BG_MAIN"))
+
+        self.title_bar.config(bg=_t("BG_TOOLBAR"))
+        self.title_label.config(bg=_t("BG_TOOLBAR"), fg=_t("ACCENT_LIGHT"))
+        self.title_info.config(bg=_t("BG_TOOLBAR"), fg=_t("TEXT_SECONDARY"))
+        self.theme_btn.config(bg=_t("BG_CARD"), fg=_t("TEXT_PRIMARY"),
+                              activebackground=_t("ACCENT_DIM"), activeforeground=_t("WHITE"),
+                              text=("\u263C Light" if _is_dark else "\u263E Dark"))
+
+        self.toolbar.config(bg=_t("BG_TOOLBAR"))
+        for lbl in [self.lbl_file, self.lbl_rotate, self.lbl_edit, self.lbl_size]:
+            lbl.config(bg=_t("BG_TOOLBAR"), fg=_t("TEXT_DIM"))
+        for sep in [self.sep1, self.sep2, self.sep3]:
+            sep.config(bg=_t("BORDER"))
+
+        for btn in [self.btn_open, self.btn_save, self.btn_saveas, self.btn_cw, self.btn_ccw,
+                     self.btn_180, self.btn_auto, self.btn_del, self.btn_merge, self.btn_split,
+                     self.btn_splitsize]:
+            s = btn._btn_style
+            btn.config(bg=self._bg_for(s), fg=self._fg_for(s),
+                       activebackground=self._abg_for(s), activeforeground=_t("WHITE"))
+
+        self.scale.config(bg=_t("BG_TOOLBAR"), fg=_t("TEXT_SECONDARY"),
+                          troughcolor=_t("BG_CARD"), activebackground=_t("ACCENT"))
+        self.size_label.config(bg=_t("BG_TOOLBAR"), fg=_t("ACCENT_LIGHT"))
+
+        self.info_bar.config(bg=_t("BG_SIDEBAR"))
+        self.file_label.config(bg=_t("BG_SIDEBAR"))
+        self.selection_label.config(bg=_t("BG_SIDEBAR"), fg=_t("ACCENT_LIGHT"))
+
+        self.grid_frame.config(bg=_t("BG_CANVAS"))
+        self.canvas.config(bg=_t("BG_CANVAS"))
+
+        self.status_frame.config(bg=_t("BG_STATUS"))
+        self.status_label.config(bg=_t("BG_STATUS"), fg=_t("TEXT_DIM"))
+        self.status_right.config(bg=_t("BG_STATUS"), fg=_t("TEXT_DIM"))
+
+        self.thumb_images = []
+        self._render_page_grid()
+        if HAS_FITZ and self.loaded_pdf_path:
+            threading.Thread(target=self._generate_thumbs, daemon=True).start()
+
+    # ── Size slider ──
 
     def _on_size_change(self, val):
         new_w = int(float(val))
@@ -452,13 +541,13 @@ class PDFEditor:
             pix = page.get_pixmap(matrix=mat)
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
-            canvas_img = Image.new("RGB", (self.thumb_w, self.thumb_h), "#0d1f30")
+            canvas_img = Image.new("RGB", (self.thumb_w, self.thumb_h), _t("THUMB_BG"))
             x_off = (self.thumb_w - img.width) // 2
             y_off = (self.thumb_h - img.height) // 2
             canvas_img.paste(img, (x_off, y_off))
 
             draw = ImageDraw.Draw(canvas_img)
-            draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline="#1e3a54")
+            draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline=_t("BORDER"))
             return ImageTk.PhotoImage(canvas_img)
         except Exception:
             return None
@@ -493,9 +582,9 @@ class PDFEditor:
 
     def _make_placeholder(self, index, w, h, rotation):
         if not HAS_PIL: return None
-        img = Image.new("RGB", (self.thumb_w, self.thumb_h), "#0d1f30")
+        img = Image.new("RGB", (self.thumb_w, self.thumb_h), _t("CARD_PLACEHOLDER"))
         draw = ImageDraw.Draw(img)
-        draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline="#1e3a54")
+        draw.rectangle([0, 0, self.thumb_w-1, self.thumb_h-1], outline=_t("CARD_PH_BORDER"))
         try:
             font = ImageFont.truetype("arial.ttf", max(14, self.thumb_w // 8))
             small = ImageFont.truetype("arial.ttf", max(9, self.thumb_w // 16))
@@ -504,11 +593,11 @@ class PDFEditor:
         text = str(index + 1)
         bbox = draw.textbbox((0, 0), text, font=font)
         tw, th2 = bbox[2]-bbox[0], bbox[3]-bbox[1]
-        draw.text(((self.thumb_w-tw)//2, self.thumb_h//2 - th2), text, fill="#4a6a8a", font=font)
+        draw.text(((self.thumb_w-tw)//2, self.thumb_h//2 - th2), text, fill=_t("CARD_PH_TEXT"), font=font)
         info = f"{w:.0f}x{h:.0f}"
         bbox2 = draw.textbbox((0, 0), info, font=small)
         iw = bbox2[2]-bbox2[0]
-        draw.text(((self.thumb_w-iw)//2, self.thumb_h//2 + 8), info, fill="#2a4a6a", font=small)
+        draw.text(((self.thumb_w-iw)//2, self.thumb_h//2 + 8), info, fill=_t("CARD_PH_INFO"), font=small)
         return ImageTk.PhotoImage(img)
 
     # ── Grid ──
@@ -521,13 +610,12 @@ class PDFEditor:
         if not self.reader:
             cw = max(self.canvas.winfo_width(), 800)
             ch = max(self.canvas.winfo_height(), 400)
-            # Welcome screen
             self.canvas.create_text(cw//2, ch//2 - 40, text="\u25A4",
-                                     fill=TEXT_DIM, font=("Segoe UI", 48))
+                                     fill=_t("TEXT_DIM"), font=("Segoe UI", 48))
             self.canvas.create_text(cw//2, ch//2 + 20, text="Open a PDF to get started",
-                                     fill=TEXT_SECONDARY, font=("Segoe UI", 16))
+                                     fill=_t("TEXT_SECONDARY"), font=("Segoe UI", 16))
             self.canvas.create_text(cw//2, ch//2 + 50, text="Ctrl+O  or  click Open",
-                                     fill=TEXT_DIM, font=("Segoe UI", 11))
+                                     fill=_t("TEXT_DIM"), font=("Segoe UI", 11))
             return
 
         canvas_w = max(self.canvas.winfo_width(), 800)
@@ -623,7 +711,7 @@ class PDFEditor:
             self.thumb_images = []
             name = os.path.basename(path)
             pages = len(self.reader.pages)
-            self.file_label.config(text=f"\u25CF  {name}  ({pages} pages)", fg=TEXT_PRIMARY)
+            self.file_label.config(text=f"\u25CF  {name}  ({pages} pages)", fg=_t("TEXT_PRIMARY"))
             self.title_info.config(text=f"  {name}")
             self.root.title(f"PDF Editor - {name}")
             self.status_right.config(text=f"Loading {pages} pages...")
@@ -855,7 +943,7 @@ class PDFEditor:
         self.modified = True
         self.thumb_images = []
         name = os.path.basename(self.original_path) if self.original_path else "PDF"
-        self.file_label.config(text=f"\u25C9  {name}  ({len(self.reader.pages)} pages)  [modified]", fg=ACCENT_LIGHT)
+        self.file_label.config(text=f"\u25C9  {name}  ({len(self.reader.pages)} pages)  [modified]", fg=_t("ACCENT_LIGHT"))
         self._render_page_grid()
         if HAS_FITZ:
             threading.Thread(target=self._generate_thumbs, daemon=True).start()
@@ -867,7 +955,7 @@ class PDFEditor:
         self.modified = False
         self.thumb_images = []
         name = os.path.basename(path)
-        self.file_label.config(text=f"\u25CF  {name}  ({len(self.reader.pages)} pages)", fg=TEXT_PRIMARY)
+        self.file_label.config(text=f"\u25CF  {name}  ({len(self.reader.pages)} pages)", fg=_t("TEXT_PRIMARY"))
         self.title_info.config(text=f"  {name}")
         self.root.title(f"PDF Editor - {name}")
         self._render_page_grid()
