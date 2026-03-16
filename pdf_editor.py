@@ -324,6 +324,7 @@ class PDFEditor:
         self.modified = False
         self.thumb_w = DEFAULT_THUMB_W
         self.thumb_h = DEFAULT_THUMB_H
+        self._drag_start = None
 
         self._build_ui()
 
@@ -410,6 +411,8 @@ class PDFEditor:
         tk.Label(toolbar, text="EDIT", bg=BG_TOOLBAR, fg=TEXT_DIM,
                  font=("Segoe UI", 7, "bold")).pack(side=tk.LEFT, padx=(0,6))
         self._make_btn(toolbar, "\u2716 Delete", self.delete_pages, "danger").pack(side=tk.LEFT, padx=2)
+        self._make_btn(toolbar, "\u29C9 Duplicate", self.duplicate_pages).pack(side=tk.LEFT, padx=2)
+        self._make_btn(toolbar, "\u25A2 Blank Page", self.insert_blank_page).pack(side=tk.LEFT, padx=2)
         self._make_btn(toolbar, "\u2795 Merge", self.merge_pdfs).pack(side=tk.LEFT, padx=2)
         self._make_btn(toolbar, "\u2702 Split", self.split_by_pages).pack(side=tk.LEFT, padx=2)
         self._make_btn(toolbar, "\u2696 Split Size", self.split_by_size).pack(side=tk.LEFT, padx=2)
@@ -463,13 +466,15 @@ class PDFEditor:
         self.canvas.bind("<MouseWheel>", lambda e: self.canvas.yview_scroll(-1*(e.delta//120), "units"))
         self.canvas.bind("<Button-4>", lambda e: self.canvas.yview_scroll(-3, "units"))
         self.canvas.bind("<Button-5>", lambda e: self.canvas.yview_scroll(3, "units"))
+        self.canvas.bind("<B1-Motion>", self._on_drag_motion)
+        self.canvas.bind("<ButtonRelease-1>", self._on_drag_release)
 
         # ── Status bar ──
         status = tk.Frame(self.root, bg=BG_STATUS, height=28)
         status.pack(fill=tk.X, side=tk.BOTTOM)
         status.pack_propagate(False)
 
-        self.status_label = tk.Label(status, text="  Ready  |  Click = select  |  Ctrl+Click = multi  |  Ctrl+A = all  |  Double-click = expand  |  Del = remove",
+        self.status_label = tk.Label(status, text="  Ready  |  Click = select  |  Ctrl+Click = multi  |  Drag = reorder  |  Ctrl+D = duplicate  |  Ins = blank page",
                                       bg=BG_STATUS, fg=TEXT_DIM, font=("Segoe UI", 8), anchor="w")
         self.status_label.pack(side=tk.LEFT, padx=8)
 
@@ -483,6 +488,8 @@ class PDFEditor:
         self.root.bind("<Delete>", lambda e: self.delete_pages())
         self.root.bind("<Control-s>", lambda e: self.save())
         self.root.bind("<Control-S>", lambda e: self.save_as())
+        self.root.bind("<Insert>", lambda e: self.insert_blank_page())
+        self.root.bind("<Control-d>", lambda e: self.duplicate_pages())
 
     def _on_size_change(self, val):
         new_w = int(float(val))
@@ -653,6 +660,7 @@ class PDFEditor:
         self._update_selection_label()
 
     def _on_card_click(self, card, event):
+        self._drag_start = {"card": card, "x": event.x, "y": event.y, "started": False}
         if event.state & 0x4:
             card.set_selected(not card.selected)
         else:
@@ -689,6 +697,134 @@ class PDFEditor:
             messagebox.showinfo("No PDF", "Open a PDF file first.")
             return False
         return True
+
+    # ── Drag and Drop Reorder ──
+
+    def _get_drop_index(self, event):
+        canvas_y = self.canvas.canvasy(event.y)
+        canvas_x = event.x
+        canvas_w = max(self.canvas.winfo_width(), 800)
+        pad = 8
+        card_w = self.thumb_w + pad * 2
+        card_h = self.thumb_h + 46
+        gap = 16
+        cols = max(1, (canvas_w - gap) // (card_w + gap))
+        grid_w = cols * (card_w + gap) - gap
+        x_start = max(gap, (canvas_w - grid_w) // 2)
+        col = max(0, min(cols - 1, int((canvas_x - x_start + gap // 2) / (card_w + gap))))
+        row = max(0, int((canvas_y - gap + gap // 2) / (card_h + gap)))
+        index = row * cols + col
+        total = len(self.reader.pages) if self.reader else 0
+        card_center_x = x_start + col * (card_w + gap) + card_w // 2
+        if canvas_x > card_center_x:
+            index += 1
+        return max(0, min(total, index))
+
+    def _draw_drop_indicator(self, drop_index):
+        self.canvas.delete("drop_indicator")
+        if not self.reader:
+            return
+        canvas_w = max(self.canvas.winfo_width(), 800)
+        pad = 8
+        card_w = self.thumb_w + pad * 2
+        card_h = self.thumb_h + 46
+        gap = 16
+        cols = max(1, (canvas_w - gap) // (card_w + gap))
+        grid_w = cols * (card_w + gap) - gap
+        x_start = max(gap, (canvas_w - grid_w) // 2)
+        total = len(self.reader.pages)
+        col = drop_index % cols
+        row = drop_index // cols
+        if drop_index >= total:
+            col = total % cols
+            row = total // cols
+        x = x_start + col * (card_w + gap) - gap // 2
+        y = gap + row * (card_h + gap)
+        self.canvas.create_line(x, y, x, y + card_h, fill=ACCENT, width=3, tags="drop_indicator")
+        self.canvas.create_polygon(x - 6, y, x + 6, y, x, y + 8,
+                                    fill=ACCENT, outline="", tags="drop_indicator")
+
+    def _on_drag_motion(self, event):
+        if not self._drag_start or not self.reader:
+            return
+        dx = abs(event.x - self._drag_start["x"])
+        dy = abs(event.y - self._drag_start["y"])
+        if not self._drag_start["started"] and dx + dy < 8:
+            return
+        if not self._drag_start["started"]:
+            self._drag_start["started"] = True
+            self.canvas.config(cursor="fleur")
+        self.canvas.delete("drag_ghost")
+        card = self._drag_start["card"]
+        gx, gy = event.x + 15, self.canvas.canvasy(event.y) - 15
+        self.canvas.create_rectangle(gx, gy, gx + 70, gy + 30,
+                                      fill=ACCENT, outline=ACCENT_LIGHT, width=2, tags="drag_ghost")
+        self.canvas.create_text(gx + 35, gy + 15, text=f"Page {card.index + 1}",
+                                 fill=WHITE, font=("Segoe UI", 9, "bold"), tags="drag_ghost")
+        drop_idx = self._get_drop_index(event)
+        self._draw_drop_indicator(drop_idx)
+        # Auto-scroll near edges
+        ch = self.canvas.winfo_height()
+        if event.y < 30:
+            self.canvas.yview_scroll(-2, "units")
+        elif event.y > ch - 30:
+            self.canvas.yview_scroll(2, "units")
+
+    def _on_drag_release(self, event):
+        if not self._drag_start or not self._drag_start["started"]:
+            self._drag_start = None
+            return
+        self.canvas.delete("drag_ghost")
+        self.canvas.delete("drop_indicator")
+        self.canvas.config(cursor="")
+        old_index = self._drag_start["card"].index
+        new_index = self._get_drop_index(event)
+        self._drag_start = None
+        if new_index == old_index or new_index == old_index + 1:
+            return
+        self._apply_reorder(old_index, new_index)
+
+    def _apply_reorder(self, old_index, new_index):
+        order = list(range(len(self.reader.pages)))
+        page = order.pop(old_index)
+        if new_index > old_index:
+            new_index -= 1
+        order.insert(new_index, page)
+        writer = PdfWriter()
+        for i in order:
+            writer.add_page(self.reader.pages[i])
+        self._apply_writer(writer)
+        self.status_label.config(text=f"  Moved page {old_index + 1} to position {new_index + 1}")
+
+    # ── Insert / Duplicate ──
+
+    def insert_blank_page(self):
+        if not self._require_pdf():
+            return
+        selected = [c.index for c in self.page_cards if c.selected]
+        insert_after = max(selected) if selected else len(self.reader.pages) - 1
+        writer = PdfWriter()
+        for i, page in enumerate(self.reader.pages):
+            writer.add_page(page)
+            if i == insert_after:
+                writer.add_blank_page(width=595.276, height=841.890)
+        self._apply_writer(writer)
+        self.status_label.config(text=f"  Inserted blank page after page {insert_after + 1}")
+
+    def duplicate_pages(self):
+        if not self._require_pdf():
+            return
+        indices = self._get_selected_indices()
+        if not indices:
+            return
+        writer = PdfWriter()
+        for i, page in enumerate(self.reader.pages):
+            writer.add_page(page)
+            if i in indices:
+                writer.add_page(page)
+        self._apply_writer(writer)
+        count = len(indices)
+        self.status_label.config(text=f"  Duplicated {count} page(s)")
 
     # ── File ops ──
 

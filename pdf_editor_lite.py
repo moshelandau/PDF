@@ -74,6 +74,8 @@ class PDFEditorLite:
         tk.Frame(tb, width=1, bg="#2d4560").pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=2)
 
         self._btn(tb, "\u2716 Del", self.delete_pages, bg="#3a1520", fg="#ff6b6b").pack(side=tk.LEFT, padx=2)
+        self._btn(tb, "\u29C9 Dup", self.duplicate_pages).pack(side=tk.LEFT, padx=2)
+        self._btn(tb, "\u25A2 Blank", self.insert_blank).pack(side=tk.LEFT, padx=2)
         self._btn(tb, "Merge", self.merge).pack(side=tk.LEFT, padx=2)
         self._btn(tb, "Split", self.split_pages).pack(side=tk.LEFT, padx=2)
         self._btn(tb, "Split Size", self.split_size).pack(side=tk.LEFT, padx=2)
@@ -114,6 +116,8 @@ class PDFEditorLite:
         self.root.bind("<Control-a>", lambda e: self.listbox.select_set(0, tk.END))
         self.root.bind("<Delete>", lambda e: self.delete_pages())
         self.root.bind("<Control-s>", lambda e: self.save())
+        self.root.bind("<Insert>", lambda e: self.insert_blank())
+        self.root.bind("<Control-d>", lambda e: self.duplicate_pages())
 
     def _refresh_list(self):
         self.listbox.delete(0, tk.END)
@@ -218,6 +222,29 @@ class PDFEditorLite:
         if not w.pages: messagebox.showwarning("Warning", "Can't delete all."); return
         self._apply(w)
         self.status.config(text=f"  Deleted {len(sel)} page(s)")
+
+    def duplicate_pages(self):
+        if not self._need_pdf(): return
+        sel = self._get_sel()
+        if not sel: return
+        w = PdfWriter()
+        for i, p in enumerate(self.reader.pages):
+            w.add_page(p)
+            if i in sel: w.add_page(p)
+        self._apply(w)
+        self.status.config(text=f"  Duplicated {len(sel)} page(s)")
+
+    def insert_blank(self):
+        if not self._need_pdf(): return
+        sel = self.listbox.curselection()
+        insert_after = max(sel) if sel else len(self.reader.pages) - 1
+        w = PdfWriter()
+        for i, p in enumerate(self.reader.pages):
+            w.add_page(p)
+            if i == insert_after:
+                w.add_blank_page(width=595.276, height=841.890)
+        self._apply(w)
+        self.status.config(text=f"  Inserted blank page after page {insert_after + 1}")
 
     def merge(self):
         paths = filedialog.askopenfilenames(title="Select PDFs (Ctrl+Click)", filetypes=[("PDF", "*.pdf")])
