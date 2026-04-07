@@ -1,0 +1,72 @@
+<resources>
+    <string name="app_name">Hatzolah Members</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <!-- Auth -->
+    <string name="login_title">Hatzolah Members</string>
+    <string name="login_subtitle">Enter your registered phone number</string>
+    <string name="phone_number_hint">Phone Number</string>
+    <string name="verification_code_hint">Verification Code</string>
+    <string name="send_code">Send Verification Code</string>
+    <string name="verify">Verify</string>
+    <string name="login_error_unregistered">This number is not registered. Contact your admin.</string>
+    <string name="login_error_invalid_code">Invalid verification code. Please try again.</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="latest_dispatch">Latest Dispatch</string>
+    <string name="navigate">Navigate</string>
+    <string name="no_active_calls">No active calls</string>
+
+    <!-- Hospital Directory -->
+    <string name="hospitals_title">Hospital Directory</string>
+    <string name="search_hospitals">Search hospitals…</string>
+    <string name="er_location">ER Location</string>
+    <string name="access_codes">Access Codes</string>
+    <string name="kosher_room">Kosher Room</string>
+    <string name="patient_assistance">Patient Assistance</string>
+    <string name="hotlines">Hotlines</string>
+    <string name="communication_system">Communication System</string>
+
+    <!-- Member Directory -->
+    <string name="members_title">Member Directory</string>
+    <string name="search_members">Search members…</string>
+
+    <!-- Call Log -->
+    <string name="call_log_title">Call History</string>
+    <string name="document_call">Document Call</string>
+
+    <!-- Statistics -->
+    <string name="team_stats_title">Team Statistics</string>
+    <string name="personal_stats_title">My Statistics</string>
+    <string name="total_calls">Total Calls</string>
+    <string name="total_miles">Total Miles</string>
+    <string name="avg_response_time">Avg Response Time</string>
+    <string name="hours_spent">Hours Spent</string>
+
+    <!-- RMA -->
+    <string name="rma_title">RMA Hotline</string>
+    <string name="call_rma">Call RMA</string>
+    <string name="outcome_approved">Approved</string>
+    <string name="outcome_denied">Denied</string>
+    <string name="outcome_transferred">Transferred</string>
+
+    <!-- Emergency Protocols -->
+    <string name="protocols_title">Emergency Protocols</string>
+
+    <!-- Call Documentation -->
+    <string name="doc_title">Call Documentation</string>
+    <string name="patient_name">Patient Name</string>
+    <string name="patient_dob">Date of Birth</string>
+    <string name="medical_notes">Medical Notes</string>
+    <string name="save">Save</string>
+
+    <!-- Admin -->
+    <string name="admin_title">Admin Panel</string>
+    <string name="add_member">Add Member</string>
+    <string name="manage_members">Manage Members</string>
+
+    <!-- Map -->
+    <string name="call_map_title">My Call Map</string>
+</resources>
